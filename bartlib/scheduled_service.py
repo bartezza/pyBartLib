@@ -5,6 +5,7 @@ import schedule
 import time
 from typing import Optional
 from matplotlib.figure import Figure
+from dotenv import load_dotenv
 from .telegram import TelegramBot
 from .utils import init_logging
 
@@ -24,15 +25,18 @@ class ScheduledService:
         self._log = logging.getLogger(name)
 
         parser = argparse.ArgumentParser(description=name)
+        parser.add_argument("-e", "--env-file", dest="env_file", action="store",
+                            default="../my.env", help="Path to env file")
         parser.add_argument("-t", "--test", dest="test", action="store_true", default=False, help="Run test only")
         parser.add_argument("-notg", "--no-telegram", dest="no_telegram", action="store_true", default=False, help="Disable Telegram")
-        parser.add_argument("-tg", "--telegram", dest="telegram_config", action="store", default="../telegram.json", help="Telegram config file")
         self.setup_arg_parser(parser)
         self.args = parser.parse_args()
+        
+        if self.args.env_file is not None:
+            load_dotenv(self.args.env_file)
 
         if use_telegram and not self.args.no_telegram:
-            self.telegram = TelegramBot(welcome_msg=None,
-                                        config_file=self.args.telegram_config)
+            self.telegram = TelegramBot(welcome_msg=None)
             self.tg_prefix = f"[<b>{self.name}</b>] "
         else:
             self.telegram = None

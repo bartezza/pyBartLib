@@ -1,8 +1,8 @@
 
 import json
 import logging
-import traceback
 import os
+from typing import Optional
 from queue import Queue, Empty
 from telegram import ParseMode
 from telegram.ext import Updater, Dispatcher, CommandHandler
@@ -11,10 +11,7 @@ import time
 from datetime import datetime
 from matplotlib.figure import Figure
 import tempfile
-
-
-def dump_exception():
-    traceback.print_exc()
+from .utils import dump_exception
 
 
 class TelegramBotThread(Thread):
@@ -122,19 +119,22 @@ class TelegramBot:  # (Thread):
     group_id: str
     cmd_thread: TelegramBotThread
 
-    def __init__(self, welcome_msg="Hello from <b>IBTest</b>",
-                 config_file="../telegram.json"):
+    def __init__(self, token: Optional[str],
+                 group_id: Optional[str],
+                 welcome_msg: Optional[str] = "Hello from <b>IBTest</b>"):
         # Thread.__init__(self)
       
         logging.getLogger("telegram").setLevel(logging.INFO)
         logging.getLogger("JobQueue").setLevel(logging.INFO)
-
-        with open(config_file, "r") as fp:
-            tg_config = json.load(fp)
         
-        self.group_id = tg_config["group_id"]
+        if token is None:
+            token = os.getenv("TELEGRAM_TOKEN")
+        if group_id is None:
+            group_id = os.getenv("TELEGRAM_GROUP_ID")
+        
+        self.group_id = group_id
 
-        self.updater = Updater(token=tg_config["token"], use_context=True)
+        self.updater = Updater(token=token, use_context=True)
         self.dispatcher = self.updater.dispatcher
 
         self.add_command("start", self.start)
