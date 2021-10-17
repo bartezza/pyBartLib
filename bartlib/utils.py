@@ -10,18 +10,24 @@ from functools import wraps
 
 
 g_key_value_use_update_end = True
+g_logging_initialized = False
 
 
-def init_logging(debug_ibinsync: bool = False, default_level: str = logging.INFO):
+def init_logging(debug_ibinsync: bool = False, default_level: str = logging.INFO,
+                 dont_reinit: bool = False):
+    global g_logging_initialized
+    if dont_reinit and g_logging_initialized:
+        return
+
     # use colored logs
     import coloredlogs
     # configuration guide: https://pypi.org/project/coloredlogs/#format-of-log-messages
     # coloredlogs.install()
     # coloredlogs.install(fmt='%(asctime)s,%(msecs)03d %(hostname)s %(name)s[%(process)d] %(levelname)s %(message)s')
-    coloredlogs.install(fmt='[%(name)s %(levelname)s]  %(message)s', stream=sys.stdout, level=logging.DEBUG)
+    coloredlogs.install(fmt='[%(name)s %(levelname)s]  %(message)s', stream=sys.stdout, level=default_level)
 
     # default level
-    logging.getLogger("root").setLevel(default_level)
+    # logging.getLogger("root").setLevel(default_level)
 
     # change logging level
     new_log_level = logging.WARNING
@@ -35,6 +41,8 @@ def init_logging(debug_ibinsync: bool = False, default_level: str = logging.INFO
     if not debug_ibinsync:
         logging.getLogger("ib_insync.client").setLevel(logging.INFO)
         logging.getLogger("ib_insync.wrapper").setLevel(logging.WARNING)
+
+    g_logging_initialized = True
 
 
 def format_expiration(expir, short=False):

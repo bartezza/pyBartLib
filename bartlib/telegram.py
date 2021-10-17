@@ -119,8 +119,8 @@ class TelegramBot:  # (Thread):
     group_id: str
     cmd_thread: TelegramBotThread
 
-    def __init__(self, token: Optional[str],
-                 group_id: Optional[str],
+    def __init__(self, token: Optional[str] = None,
+                 group_id: Optional[str] = None,
                  welcome_msg: Optional[str] = "Hello from <b>IBTest</b>"):
         # Thread.__init__(self)
       
@@ -129,6 +129,8 @@ class TelegramBot:  # (Thread):
         
         if token is None:
             token = os.getenv("TELEGRAM_TOKEN")
+        if token is None:
+            raise Exception("Token not set (you can pass it by setting TELEGRAM_TOKEN env var)")
         if group_id is None:
             group_id = os.getenv("TELEGRAM_GROUP_ID")
         

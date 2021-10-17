@@ -3,6 +3,7 @@ import traceback
 import html
 import argparse
 import schedule
+from dotenv import load_dotenv
 from bartlib.scheduled_service import ScheduledService
 
 
@@ -11,7 +12,12 @@ class TestService(ScheduledService):
         super().__init__(name="TestService")
 
     def setup_arg_parser(self, parser: argparse.ArgumentParser):
-        pass
+        parser.add_argument("-e", "--env-file", dest="env_file", action="store",
+                            default="../my.env", help="Path to env file")
+    
+    def parse_arguments(self):
+        if self.args.env_file is not None:
+            load_dotenv(self.args.env_file)
 
     def setup_schedule(self):
         # for idx in range(0, 60, 10):

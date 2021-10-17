@@ -1,10 +1,13 @@
 
 import time
+from dotenv import load_dotenv
 from beatrade.utils.telegram import TelegramBot
 import schedule
 
 
 if __name__ == "__main__":
+    load_dotenv("../my.env")
+    
     telegram = TelegramBot()
     telegram.run()
 

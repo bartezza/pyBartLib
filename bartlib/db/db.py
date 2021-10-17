@@ -11,15 +11,20 @@ class MongoDb:
     config: Optional[dict]
     db: pymongo.database.Database
 
-    def __init__(self, config: Optional[dict], url: Optional[str] = None):
+    def __init__(self, config: Optional[dict] = None, url: Optional[str] = None):
         if url is None:
             if config is None:
                 config = {
                     "host": os.environ.get("MONGO_HOST", "127.0.0.1"),
-                    "username": os.environ.get("MONGO_USERNAME", "username"),
-                    "password": os.environ.get("MONGO_PASSWORD", "password"),
+                    "username": os.environ.get("MONGO_USERNAME"),
+                    "password": os.environ.get("MONGO_PASSWORD"),
                     "db_name": os.environ.get("MONGO_DB_NAME", "db")
                 }
+            
+            if "host" not in config:
+                raise Exception("Mongo hostname not set (it can be set in MONGO_HOST env var)")
+            if "db_name" not in config:
+                raise Exception("Mongo DB name not set (it can be set in MONGO_DB_NAME env var)")
 
             if config["username"] and config["password"]:
                 url = "mongodb://{}:{}@{}/{}".format(config["username"], config["password"],
