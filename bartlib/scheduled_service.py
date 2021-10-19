@@ -5,9 +5,10 @@ import schedule
 import time
 import traceback
 import html
-from typing import Optional
+from typing import Optional, List
 from matplotlib.figure import Figure
 from dotenv import load_dotenv
+from pprint import pprint
 from .telegram import TelegramBot
 from .utils import init_logging
 
@@ -17,28 +18,45 @@ class ScheduledService:
     tg_prefix: str
     name: str
     # args
+    is_test: bool
     _log: logging.Logger
+    commands: List[str]
 
     def __init__(self, name: str, use_telegram: bool = True):
         init_logging(dont_reinit=True)
 
         self.name = name
-
         self._log = logging.getLogger(name)
+        self.commands = []
 
         parser = argparse.ArgumentParser(description=name)
         parser.add_argument("-t", "--test", dest="test", action="store_true", default=False, help="Run test only")
         parser.add_argument("-notg", "--no-telegram", dest="no_telegram", action="store_true", default=False, help="Disable Telegram")
         self.setup_arg_parser(parser)
         self.args = parser.parse_args()
+
+        self.is_test = self.args.test
         
         self.parse_arguments()
 
         if use_telegram and not self.args.no_telegram:
             self.telegram = TelegramBot(welcome_msg=None)
             self.tg_prefix = f"[<b>{self.name}</b>] "
+            self.add_command("help", self.tg_help, simple=True)
+            self.add_command("testtg", self.tg_testtg, simple=False)
         else:
             self.telegram = None
+
+    def tg_help(self):
+        mex = "Available commands:\n" + "\n".join(self.commands)
+        self.send_message(mex)
+
+    def tg_testtg(self, update, context):
+        pprint(f"update = {update}, context = {context}")
+        chat = update["message"]["chat"]
+        chat_name = chat["title"]
+        chat_id = chat["id"]
+        print(f"chat name = {chat_name}, id = {chat_id}")
 
     def setup_arg_parser(self, parser: argparse.ArgumentParser):
         pass
@@ -62,6 +80,8 @@ class ScheduledService:
     def add_command(self, cmd: str, func, simple: bool = True):
         if self.telegram is not None:
             self.telegram.add_command(cmd, lambda update, context: self._tg_cmd(update, context, func, simple))
+            self._log.debug(f"Registered command '{cmd}'")
+            self.commands.append(cmd)
 
     def send_message(self, mex: str, tg_mex: Optional[str] = None):
         self._log.info(mex)
