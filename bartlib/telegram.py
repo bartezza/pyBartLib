@@ -12,6 +12,7 @@ from datetime import datetime
 from matplotlib.figure import Figure
 import tempfile
 from .utils import dump_exception
+from timeit import default_timer
 
 
 class TelegramBotThread(Thread):
@@ -22,13 +23,15 @@ class TelegramBotThread(Thread):
     aggregate: bool
     agg_mex: str
     agg_chat_id: str
+    mex_interval: float = 0.5
 
     def __init__(self, tg):
         super().__init__()
         self.tg = tg
         self.queue = Queue()
         self.stopping = False
-        self.last_sent = datetime.now()
+        # self.last_sent = datetime.now()
+        self.last_sent = default_timer()
         self.aggregate = True  # NOTE: this works ONLY with one single chat_id
         self.agg_mex = None
         self.agg_chat_id = None
@@ -36,20 +39,30 @@ class TelegramBotThread(Thread):
     def append(self, data):
         self.queue.put(data, timeout=1)
     
+    def _rate_limit(self):
+        # while (now - self.last_sent).total_seconds() < self.mex_interval:
+        #     time.sleep(self.mex_interval - (now - self.last_sent).total_seconds())
+        #     now = datetime.now()
+        now = default_timer()
+        if now - self.last_sent < self.mex_interval:
+            time.sleep(self.mex_interval - (now - self.last_sent) + 0.1)
+            now = default_timer()
+            self.last_sent = now
+    
     def run(self):
         while not self.stopping:
             do_send = False
             try:
                 data = self.queue.get(block=True, timeout=1)
                 if data["type"] == "send_message":
-                    now = datetime.now()
+                    # now = datetime.now()
+                    now = default_timer()
                     
                     if not self.aggregate:
-                        while (now - self.last_sent).total_seconds() < 0.5:
-                            time.sleep(0.5)
-                            now = datetime.now()
+                        self._rate_limit()
                         self.tg.updater.bot.send_message(**data["params"])
-                        self.last_sent = datetime.now()
+                        # self.last_sent = datetime.now()
+                        self.last_sent = default_timer()
                     else:
                         # NOTE: this works ONLY if the chat_id are the same!
                         # add to aggregate mex
@@ -61,24 +74,23 @@ class TelegramBotThread(Thread):
                         
                         # print("Agg = '{}'".format(self.agg_mex))
 
-                        if (now - self.last_sent).total_seconds() >= 0.7:
+                        # if (now - self.last_sent).total_seconds() >= 0.7:
+                        if now - self.last_sent >= 0.7:
                             try:
                                 self.tg.updater.bot.send_message(data["params"]["chat_id"], self.agg_mex, data["params"]["parse_mode"])
                             except:
                                 dump_exception()
 
                             self.agg_mex = None
-                            self.last_sent = datetime.now()
+                            # self.last_sent = datetime.now()
+                            self.last_sent = default_timer()
 
                         #     print("SENT")
                         # else:
                         #     print("NOT SENT")
 
                 elif data["type"] == "send_photo":
-                    now = datetime.now()
-                    while (now - self.last_sent).total_seconds() < 0.5:
-                        time.sleep(0.5)
-                        now = datetime.now()
+                    self._rate_limit()
                     params = data["params"].copy()
                     filename = params.pop("filename")
                     delete_afterwards = params.pop("delete_afterwards")
@@ -87,7 +99,8 @@ class TelegramBotThread(Thread):
                                                    **params)
                     if delete_afterwards:
                         os.unlink(filename)
-                    self.last_sent = datetime.now()
+                    # self.last_sent = datetime.now()
+                    self.last_sent = default_timer()
 
             except (TimeoutError, Empty) as exc:
                 do_send = True
@@ -98,14 +111,17 @@ class TelegramBotThread(Thread):
             # even if we have nothing in the queue, check if we have some
             # aggregated message to send
             if do_send and self.agg_mex is not None:
-                now = datetime.now()
-                if (now - self.last_sent).total_seconds() >= 0.7:
+                # now = datetime.now()
+                now = default_timer()
+                # if (now - self.last_sent).total_seconds() >= 0.7:
+                if now - self.last_sent >= 0.7:
                     try:
                         self.tg.updater.bot.send_message(self.agg_chat_id, self.agg_mex, parse_mode=ParseMode.HTML)
                     except:
                         dump_exception()
                     self.agg_mex = None
-                    self.last_sent = datetime.now()
+                    # self.last_sent = datetime.now()
+                    self.last_sent = default_timer()
 
                     # print("SENT")
 

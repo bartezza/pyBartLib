@@ -13,7 +13,7 @@ g_key_value_use_update_end = True
 g_logging_initialized = False
 
 
-def init_logging(debug_ibinsync: bool = False, default_level: str = logging.INFO,
+def init_logging(debug_ibinsync: bool = False, default_level: str = logging.DEBUG,
                  dont_reinit: bool = False):
     global g_logging_initialized
     if dont_reinit and g_logging_initialized:

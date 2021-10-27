@@ -20,14 +20,14 @@ class ScheduledService:
     # args
     is_test: bool
     _log: logging.Logger
-    commands: List[str]
+    commands: dict  # {"cmd", "func", "simple"}
 
     def __init__(self, name: str, use_telegram: bool = True):
         init_logging(dont_reinit=True)
 
         self.name = name
         self._log = logging.getLogger(name)
-        self.commands = []
+        self.commands = {}
 
         parser = argparse.ArgumentParser(description=name)
         parser.add_argument("-t", "--test", dest="test", action="store_true", default=False, help="Run test only")
@@ -42,13 +42,15 @@ class ScheduledService:
         if use_telegram and not self.args.no_telegram:
             self.telegram = TelegramBot(welcome_msg=None)
             self.tg_prefix = f"[<b>{self.name}</b>] "
-            self.add_command("help", self.tg_help, simple=True)
-            self.add_command("testtg", self.tg_testtg, simple=False)
         else:
             self.telegram = None
 
+        self.setup_commands()
+
     def tg_help(self):
-        mex = "Available commands:\n" + "\n".join(self.commands)
+        cmds = sorted(list(self.commands.keys()))
+        cmds = ["/" + cmd for cmd in cmds]
+        mex = "Available commands:\n" + "\n".join(cmds)
         self.send_message(mex)
 
     def tg_testtg(self, update, context):
@@ -63,6 +65,10 @@ class ScheduledService:
     
     def parse_arguments(self):
         pass
+
+    def setup_commands(self):
+        self.add_command("help", self.tg_help, simple=True)
+        self.add_command("testtg", self.tg_testtg, simple=False)
 
     def setup_schedule(self):
         pass
@@ -80,8 +86,19 @@ class ScheduledService:
     def add_command(self, cmd: str, func, simple: bool = True):
         if self.telegram is not None:
             self.telegram.add_command(cmd, lambda update, context: self._tg_cmd(update, context, func, simple))
-            self._log.debug(f"Registered command '{cmd}'")
-            self.commands.append(cmd)
+        self._log.debug(f"Registered command '{cmd}'")
+        # add to local list
+        self.commands[cmd] = {"cmd": cmd, "func": func, "simple": simple}
+    
+    def exec_command(self, cmd: str):
+        cmd_info = self.commands.get(cmd)
+        if cmd_info is not None:
+            if cmd_info["simple"]:
+                return cmd_info["func"]()
+            else:
+                return cmd_info["func"](update=None, context=None)
+        else:
+            self._log.error(f"Unknown command '{cmd}'")
 
     def send_message(self, mex: str, tg_mex: Optional[str] = None):
         self._log.info(mex)
@@ -90,11 +107,13 @@ class ScheduledService:
 
     def send_photo(self, filename: str, caption: str,
                    delete_afterwards: bool = False):
+        self._log.info(f"Sending photo {filename} ({caption})")
         if self.telegram is not None:
             self.telegram.send_photo(filename=filename, caption=caption,
                                      delete_afterwards=delete_afterwards)
 
     def send_figure(self, fig: Figure, caption: str):
+        self._log.info(f"Sending figure ({caption})")
         if self.telegram is not None:
             self.telegram.send_figure(fig=fig, caption=caption)
 
