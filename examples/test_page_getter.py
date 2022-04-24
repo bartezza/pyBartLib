@@ -8,7 +8,7 @@ if __name__ == "__main__":
     url_session_init = "https://www.amazon.it"
     use_cache = True
     pg = PageGetter(url_session_init=url_session_init, headers=None,
-                    use_cache=use_cache, cache_path="cache")
+                    use_cache=use_cache, cache_path="cache", rate_limit=1.0)
 
     url = "https://www.amazon.it/dp/B078211KBB"
     params = {}

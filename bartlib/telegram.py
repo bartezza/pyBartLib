@@ -4,6 +4,7 @@ import logging
 import os
 from typing import Optional
 from queue import Queue, Empty
+import telegram
 from telegram import ParseMode
 from telegram.ext import Updater, Dispatcher, CommandHandler
 from threading import Thread
@@ -180,9 +181,11 @@ class TelegramBot:  # (Thread):
         self.dispatcher.add_handler(CommandHandler(name, func))
     
     @staticmethod
-    def start(update, context):  # command
+    def start(update: telegram.Update, context: telegram.ext.CallbackContext):  # command
         print(f"START chat_id = {update.effective_chat.id}")
-        context.bot.send_message(chat_id=update.effective_chat.id, text="This is a start!")
+        user = update.message.from_user
+        chat = update.effective_chat
+        context.bot.send_message(chat_id=update.effective_chat.id, text=f"This is a start!\nuser = {user}\nchat = {chat}")
 
     def send_message(self, text, chat_id=None):
         if chat_id is None:
@@ -223,4 +226,4 @@ class TelegramBot:  # (Thread):
         filename = os.path.join(tempfile.gettempdir(),
                                 next(tempfile._get_candidate_names()) + ".png")
         fig.savefig(filename)
-        self.send_photo(filename, caption, delete_afterwards=True)
+        self.send_photo(filename, caption, chat_id=chat_id, delete_afterwards=True)

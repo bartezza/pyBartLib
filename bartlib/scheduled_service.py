@@ -1,4 +1,5 @@
 
+import os
 import argparse
 import logging
 import schedule
@@ -21,9 +22,12 @@ class ScheduledService:
     is_test: bool
     _log: logging.Logger
     commands: dict  # {"cmd", "func", "simple"}
+    dev_chat_id: str
 
     def __init__(self, name: str, use_telegram: bool = True):
         init_logging(dont_reinit=True)
+
+        self.dev_chat_id = os.getenv("TG_DEV_CHAT_ID", "270129568")
 
         self.name = name
         self._log = logging.getLogger(name)
@@ -81,7 +85,7 @@ class ScheduledService:
                 func(update=update, context=context)
         except:
             mex = traceback.format_exc()
-            self.send_message(mex, tg_mex="Exception: {}".format(html.escape(mex)))
+            self.send_message(mex, tg_mex="Exception: {}".format(html.escape(mex)), chat_id=self.dev_chat_id)
     
     def add_command(self, cmd: str, func, simple: bool = True):
         if self.telegram is not None:
@@ -100,10 +104,10 @@ class ScheduledService:
         else:
             self._log.error(f"Unknown command '{cmd}'")
 
-    def send_message(self, mex: str, tg_mex: Optional[str] = None):
+    def send_message(self, mex: str, tg_mex: Optional[str] = None, chat_id: Optional[str] = None):
         self._log.info(mex)
         if self.telegram is not None:
-            self.telegram.send_message(self.tg_prefix + (tg_mex or mex))
+            self.telegram.send_message(self.tg_prefix + (tg_mex or mex), chat_id=chat_id)
 
     def send_photo(self, filename: str, caption: str,
                    delete_afterwards: bool = False):
@@ -124,7 +128,7 @@ class ScheduledService:
         if not self.args.test:
             try:
                 if self.telegram is not None:
-                    self.telegram.send_message(self.tg_prefix + "Started")
+                    self.telegram.send_message(self.tg_prefix + "Started", chat_id=self.dev_chat_id)
                 
                 self.setup_schedule()
 
@@ -135,7 +139,7 @@ class ScheduledService:
                     time.sleep(1)
             finally:
                 if self.telegram is not None:
-                    self.telegram.send_message(self.tg_prefix + "Stopped")
+                    self.telegram.send_message(self.tg_prefix + "Stopped", chat_id=self.dev_chat_id)
                     self.telegram.stop()
 
         else:  # just a test
@@ -143,7 +147,7 @@ class ScheduledService:
                 self.run_test()
             finally:
                 if self.telegram is not None:
-                    self.telegram.send_message(self.tg_prefix + "Stopped")
+                    self.telegram.send_message(self.tg_prefix + "Stopped", chat_id=self.dev_chat_id)
                     self.telegram.stop()
 
     def run_test(self):
