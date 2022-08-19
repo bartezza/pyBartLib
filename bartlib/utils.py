@@ -30,13 +30,18 @@ def init_logging(debug_ibinsync: bool = False, default_level: str = logging.DEBU
     # logging.getLogger("root").setLevel(default_level)
 
     # change logging level
-    new_log_level = logging.WARNING
-    loggers = [
-        "ibapi",
-        "matplotlib"
-    ]
-    for i in loggers:
-        logging.getLogger(i).setLevel(new_log_level)
+    new_log_levels = {
+        logging.WARNING: [
+            "ibapi",
+            "matplotlib"
+        ],
+        logging.INFO: [
+            "urllib3"
+        ]
+    }
+    for level, loggers in new_log_levels.items():
+        for logger in loggers:
+            logging.getLogger(logger).setLevel(level)
 
     if not debug_ibinsync:
         logging.getLogger("ib_insync.client").setLevel(logging.INFO)

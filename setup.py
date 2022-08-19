@@ -9,5 +9,11 @@ setup(
     author_email="andrea.bartezzaghi@gmail.com",
     license="MIT",
     packages=["bartlib"],
-    zip_safe=False
+    zip_safe=False,
+    install_requires=[
+        "requests",
+        "schedule",
+        "coloredlogs",
+        "pymongo"
+    ]
 )
